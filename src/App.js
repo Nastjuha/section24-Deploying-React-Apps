@@ -1,13 +1,21 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { lazy, Suspense } from "react";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
-import BlogPage, { loader as postsLoader } from './pages/Blog';
-import HomePage from './pages/Home';
-import PostPage, { loader as postLoader } from './pages/Post';
-import RootLayout from './pages/Root';
+//import BlogPage, { loader as postsLoader } from './pages/Blog';
+import HomePage from "./pages/Home";
+// import PostPage, { loader as postLoader } from "./pages/Post";
+import RootLayout from "./pages/Root";
+
+// () => import('./pages/Blog'); - is not a valid component function.
+// RC should return jsx code. Here it rereturns a promise that resolves to a module object.
+const BlogPage = lazy(() => import("./pages/Blog"));
+const PostPage = lazy(() => import("./pages/Post"));
+
+// Suspense is used by other components to wait for content to be loaded before actually rendering the content.
 
 const router = createBrowserRouter([
   {
-    path: '/',
+    path: "/",
     element: <RootLayout />,
     children: [
       {
@@ -15,10 +23,28 @@ const router = createBrowserRouter([
         element: <HomePage />,
       },
       {
-        path: 'posts',
+        path: "posts",
         children: [
-          { index: true, element: <BlogPage />, loader: postsLoader },
-          { path: ':id', element: <PostPage />, loader: postLoader },
+          {
+            index: true,
+            element: (
+              <Suspense fallback={<p>Loading...</p>}>
+                <BlogPage />
+              </Suspense>
+            ),
+            loader: () =>
+              import("./pages/Blog").then((module) => module.loader()),
+          },
+          {
+            path: ":id",
+            element: (
+              <Suspense fallback={<p>Loading...</p>}>
+                <PostPage />
+              </Suspense>
+            ),
+            loader: (meta) =>
+              import("./pages/Post").then((module) => module.loader(meta)),
+          },
         ],
       },
     ],
